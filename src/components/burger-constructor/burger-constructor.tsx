@@ -1,55 +1,52 @@
 import { FC, useMemo, useState } from 'react';
 import { TConstructorIngredient, TOrder } from '@utils-types';
 import { BurgerConstructorUI } from '@ui';
-import { getUser, getUserData } from '../../services/slices/userSlice';
+import { getUserData } from '../../services/slices/userSlice';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from '../../services/store';
 import {
   clearConstructor,
   getConstructorItems
 } from '../../services/slices/constructorSlice';
-import { orderBurgerApi } from '@api';
+import {
+  createOrder,
+  closeOrderModal,
+  getOrderRequest,
+  getOrderModalData
+} from '../../services/slices/orderSlice';
 
 export const BurgerConstructor: FC = () => {
   const dispatch = useDispatch();
   /** TODO: взять переменные constructorItems, orderRequest и orderModalData из стора */
   const constructorItems = useSelector(getConstructorItems);
-
+  const orderRequest = useSelector(getOrderRequest);
+  const orderModalData = useSelector(getOrderModalData);
   const user = useSelector(getUserData);
   const navigate = useNavigate();
-
-  const [orderRequest, setOrderRequest] = useState(false);
-  const [orderModalData, setOrderModalData] = useState<TOrder | null>(null);
 
   const onOrderClick = () => {
     if (!user) {
       navigate('/login');
       return;
     }
+
     if (!constructorItems.bun || orderRequest) return;
+
     const ingredientIds = [
       constructorItems.bun._id,
       ...constructorItems.ingredients.map((item) => item._id),
       constructorItems.bun._id
     ];
 
-    setOrderRequest(true);
-
-    orderBurgerApi(ingredientIds)
-      .then((data) => {
-        setOrderModalData(data.order);
+    dispatch(createOrder(ingredientIds))
+      .unwrap()
+      .then(() => {
         dispatch(clearConstructor());
-      })
-      .catch((err) => {
-        console.log('Ошибка оформления заказа:', err);
-      })
-      .finally(() => {
-        setOrderRequest(false);
       });
   };
 
-  const closeOrderModal = () => {
-    setOrderModalData(null);
+  const handleCloseOrderModal = () => {
+    dispatch(closeOrderModal());
   };
 
   const price = useMemo(
@@ -71,7 +68,7 @@ export const BurgerConstructor: FC = () => {
       constructorItems={constructorItems}
       orderModalData={orderModalData}
       onOrderClick={onOrderClick}
-      closeOrderModal={closeOrderModal}
+      closeOrderModal={handleCloseOrderModal}
     />
   );
 };

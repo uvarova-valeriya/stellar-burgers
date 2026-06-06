@@ -15,10 +15,7 @@ export const Register: FC = () => {
 
   const handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
-    dispatch(register({ name: userName, email, password }))
-      .unwrap()
-      .then(() => navigate('/'))
-      .catch(() => {});
+    dispatch(register({ name: userName, email, password }));
   };
 
   return (

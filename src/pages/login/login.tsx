@@ -1,7 +1,7 @@
 import { FC, SyntheticEvent, useState } from 'react';
 import { LoginUI } from '@ui-pages';
 import { useDispatch, useSelector } from '../../services/store';
-import { register, getError, login } from '../../services/slices/userSlice';
+import { getError, login } from '../../services/slices/userSlice';
 import { useNavigate } from 'react-router-dom';
 
 export const Login: FC = () => {
@@ -14,10 +14,7 @@ export const Login: FC = () => {
 
   const handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
-    dispatch(login({ email, password }))
-      .unwrap()
-      .then(() => navigate('/'))
-      .catch(() => {});
+    dispatch(login({ email, password }));
   };
 
   return (

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { getFeedsApi } from '@api';
+import { getFeedsApi, getOrderByNumberApi } from '@api';
 import { TOrder } from '@utils-types';
 
 interface FeedState {
@@ -18,9 +18,14 @@ const initialState: FeedState = {
   error: null
 };
 
-export const fetchFeed = createAsyncThunk(
-  'feed/fetchFeed',
-  async () => await getFeedsApi()
+export const fetchFeed = createAsyncThunk('feed/fetchFeed', getFeedsApi);
+
+export const fetchOrderByNumber = createAsyncThunk(
+  'feed/fetchOrderByNumber',
+  async (number: number) => {
+    const res = await getOrderByNumberApi(number);
+    return res.orders[0];
+  }
 );
 
 export const feedSlice = createSlice({
@@ -48,6 +53,23 @@ export const feedSlice = createSlice({
       .addCase(fetchFeed.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || 'Ошибка загрузки';
+      })
+      .addCase(fetchOrderByNumber.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchOrderByNumber.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (action.payload) {
+          state.orders = [
+            ...state.orders.filter((o) => o.number !== action.payload.number),
+            action.payload
+          ];
+        }
+      })
+      .addCase(fetchOrderByNumber.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Ошибка загрузки заказа';
       });
   }
 });

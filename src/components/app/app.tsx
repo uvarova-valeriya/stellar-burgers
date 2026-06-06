@@ -13,13 +13,7 @@ import { Profile } from '../../pages/profile/profile';
 import { ProfileOrders } from '../../pages/profile-orders/profile-orders';
 import { Register } from '../../pages/register/register';
 import { ResetPassword } from '../../pages/reset-password/reset-password';
-import {
-  BrowserRouter,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate
-} from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ProtectedRoute } from '../protected-route/ProtectedRoute';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from '../../services/store';
@@ -31,7 +25,6 @@ import {
 } from '../../services/slices/ingredientsSlice';
 import { getCookie } from '../../utils/cookie';
 import { authChecked, getUser } from '../../services/slices/userSlice';
-import { fetchFeed } from '../../services/slices/feedSlice';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -50,7 +43,6 @@ const App = () => {
 
   useEffect(() => {
     dispatch(fetchIngredients());
-    dispatch(fetchFeed());
     if (getCookie('accessToken')) {
       dispatch(getUser());
     } else {
@@ -120,6 +112,14 @@ const App = () => {
           <Route path='*' element={<NotFound404 />} />
           <Route path='/ingredients/:id' element={<IngredientDetails />} />
           <Route path='/feed/:number' element={<OrderInfo />} />
+          <Route
+            path='/profile/orders/:number'
+            element={
+              <ProtectedRoute>
+                <OrderInfo />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       ) : (
         <div className={`${styles.title} text text_type_main-medium pt-4`}>

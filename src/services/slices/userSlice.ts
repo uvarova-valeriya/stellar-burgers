@@ -92,8 +92,6 @@ export const userSlice = createSlice({
     },
     userLogout: (state) => {
       state.user = null;
-      deleteCookie('accessToken');
-      localStorage.removeItem('refreshToken');
     }
   },
   selectors: {
@@ -156,6 +154,18 @@ export const userSlice = createSlice({
       .addCase(fetchUserOrders.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || 'Ошибка загрузки';
+      })
+      .addCase(updateUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateUser.fulfilled, (state, action: PayloadAction<TUser>) => {
+        state.isLoading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Ошибка обновления';
       });
   }
 });
