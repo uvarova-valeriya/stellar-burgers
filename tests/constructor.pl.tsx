@@ -1,10 +1,18 @@
-// tests/constructor.spec.ts
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'fs';
+
+const har = JSON.parse(readFileSync('./tests/hars/full.har', 'utf-8'));
+const loginEntry = har.log.entries.find(
+  (entry: any) =>
+    entry.request.url.includes('/api/auth/login') &&
+    entry.request.method === 'POST'
+);
+const { email, password } = JSON.parse(loginEntry.request.postData.text);
 
 test.describe('добавление ингредиентов', () => {
   test.beforeEach(async ({ page }) => {
-    await page.routeFromHAR('./tests/hars/ingredients.har', {
-      url: '**/api/ingredients',
+    await page.routeFromHAR('./tests/hars/full.har', {
+      url: '**/api/**',
       update: false
     });
 
@@ -76,8 +84,8 @@ test.describe('добавление ингредиентов', () => {
 
 test.describe('модальные окна', () => {
   test.beforeEach(async ({ page }) => {
-    await page.routeFromHAR('./tests/hars/ingredients.har', {
-      url: '**/api/ingredients',
+    await page.routeFromHAR('./tests/hars/full.har', {
+      url: '**/api/**',
       update: false
     });
     await page.goto('/');
@@ -85,9 +93,17 @@ test.describe('модальные окна', () => {
   });
 
   test('должен открывать модальное окно ингредиента', async ({ page }) => {
+    const ingredientName = await page
+      .getByTestId('ingredient-link')
+      .first()
+      .locator('p')
+      .last()
+      .textContent();
     await page.getByTestId('ingredient-link').first().click();
     await expect(page.getByTestId('modal')).toBeVisible();
-    await expect(page.getByTestId('modal')).not.toBeEmpty();
+    if (ingredientName) {
+      await expect(page.getByTestId('modal')).toContainText(ingredientName);
+    }
   });
 
   test('должен закрывать модальное окно по крестику', async ({ page }) => {
@@ -101,45 +117,17 @@ test.describe('модальные окна', () => {
 
 test.describe('создание заказа', () => {
   test.beforeEach(async ({ page }) => {
-    await page.routeFromHAR('./tests/hars/ingredients.har', {
-      url: '**/api/ingredients',
+    await page.routeFromHAR('./tests/hars/full.har', {
+      url: '**/api/**',
       update: false
     });
-    await page.route('**/api/orders', (route) => {
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          name: 'Краторный бургер',
-          order: { number: 107566 }
-        })
-      });
-    });
-    await page.route('**/api/auth/user', (route) => {
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: { name: 'Test', email: 'test@test.ru' }
-        })
-      });
-    });
 
-    await page.addInitScript(() => {
-      localStorage.setItem('refreshToken', 'mock-token');
-      document.cookie = 'accessToken=mock-token; path=/';
-    });
-
-    await page.goto('/');
+    await page.goto('http://localhost:4000/login');
+    await page.fill('[name="email"]', email);
+    await page.fill('[name="password"]', password);
+    await page.getByRole('button', { name: 'Войти' }).click();
+    await page.waitForURL('http://localhost:4000/');
     await expect(page.getByTestId('ingredients-section')).toBeVisible();
-  });
-
-  test.afterEach(async ({ page }) => {
-    await page.evaluate(() => {
-      localStorage.clear();
-    });
   });
 
   test('должен создать заказ', async ({ page }) => {
@@ -153,9 +141,10 @@ test.describe('создание заказа', () => {
     await page.getByTestId('order-button').click();
 
     await expect(page.getByTestId('modal')).toBeVisible();
-    await expect(page.getByText('107566')).toBeVisible();
+    await expect(page.getByText(/1076\d+/)).toBeVisible();
     await expect(page.getByTestId('no-buns').first()).toBeVisible();
 
     await page.getByTestId('modal-close').click();
+    await expect(page.getByTestId('modal')).not.toBeVisible();
   });
 });
